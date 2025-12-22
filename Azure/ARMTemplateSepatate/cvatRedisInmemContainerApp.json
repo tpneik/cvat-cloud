@@ -1,0 +1,80 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "containerapps_cvat_redis_inmem_name": {
+            "defaultValue": "cvat-redis-inmem",
+            "type": "String"
+        },
+        "managedEnvironments_cvat_test_env_externalid": {
+            "defaultValue": "/subscriptions/bb79d671-6949-4663-854e-14424d667454/resourceGroups/cvat-prod-rg/providers/Microsoft.App/managedEnvironments/cvat-test-env",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.App/containerapps",
+            "apiVersion": "2025-02-02-preview",
+            "name": "[parameters('containerapps_cvat_redis_inmem_name')]",
+            "location": "Southeast Asia",
+            "kind": "containerapps",
+            "identity": {
+                "type": "None"
+            },
+            "properties": {
+                "managedEnvironmentId": "[parameters('managedEnvironments_cvat_test_env_externalid')]",
+                "environmentId": "[parameters('managedEnvironments_cvat_test_env_externalid')]",
+                "workloadProfileName": "Consumption",
+                "configuration": {
+                    "activeRevisionsMode": "Single",
+                    "ingress": {
+                        "external": false,
+                        "targetPort": 6379,
+                        "exposedPort": 6379,
+                        "transport": "Tcp",
+                        "traffic": [
+                            {
+                                "weight": 100,
+                                "latestRevision": true
+                            }
+                        ],
+                        "allowInsecure": false,
+                        "stickySessions": {
+                            "affinity": "none"
+                        }
+                    },
+                    "identitySettings": [],
+                    "maxInactiveRevisions": 100
+                },
+                "template": {
+                    "containers": [
+                        {
+                            "image": "docker.io/redis:7.2.11-alpine",
+                            "imageType": "ContainerImage",
+                            "name": "[parameters('containerapps_cvat_redis_inmem_name')]",
+                            "args": [
+                                "redis-server",
+                                "--save",
+                                "60",
+                                "100",
+                                "--appendonly",
+                                "yes"
+                            ],
+                            "resources": {
+                                "cpu": 0.5,
+                                "memory": "1Gi"
+                            }
+                        }
+                    ],
+                    "scale": {
+                        "minReplicas": 1,
+                        "maxReplicas": 1,
+                        "cooldownPeriod": 300,
+                        "pollingInterval": 30
+                    }
+                }
+            }
+        }
+    ]
+}
