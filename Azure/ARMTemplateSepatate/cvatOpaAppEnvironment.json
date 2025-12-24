@@ -7,7 +7,7 @@
             "type": "String"
         },
         "managedEnvironments_cvat_test_env_externalid": {
-            "defaultValue": "/subscriptions/bb79d671-6949-4663-854e-14424d667454/resourceGroups/cvat-prod-rg/providers/Microsoft.App/managedEnvironments/cvat-test-env",
+            "defaultValue": "/subscriptions/bb79d671-6949-4663-854e-14424d667454/resourceGroups/cvat-prod-rg/providers/Microsoft.App/managedEnvironments/cvat-app-cae",
             "type": "String"
         }
     },
