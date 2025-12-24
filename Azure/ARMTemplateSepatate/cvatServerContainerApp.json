@@ -6,8 +6,8 @@
             "defaultValue": "cvat-server",
             "type": "String"
         },
-        "managedEnvironments_cvat_test_env_externalid": {
-            "defaultValue": "/subscriptions/bb79d671-6949-4663-854e-14424d667454/resourceGroups/cvat-prod-rg/providers/Microsoft.App/managedEnvironments/cvat-test-env",
+        "managedEnvironments_cvat_app_cae_externalid": {
+            "defaultValue": "/subscriptions/bb79d671-6949-4663-854e-14424d667454/resourceGroups/cvat-prod-rg/providers/Microsoft.App/managedEnvironments/cvat-app-cae",
             "type": "String"
         }
     },
@@ -23,21 +23,13 @@
                 "type": "None"
             },
             "properties": {
-                "managedEnvironmentId": "[parameters('managedEnvironments_cvat_test_env_externalid')]",
-                "environmentId": "[parameters('managedEnvironments_cvat_test_env_externalid')]",
+                "managedEnvironmentId": "[parameters('managedEnvironments_cvat_app_cae_externalid')]",
+                "environmentId": "[parameters('managedEnvironments_cvat_app_cae_externalid')]",
                 "workloadProfileName": "Consumption",
                 "configuration": {
-                    "secrets": [
-                        {
-                            "name": "redis-inmem-key"
-                        },
-                        {
-                            "name": "postgre-key"
-                        }
-                    ],
                     "activeRevisionsMode": "Single",
                     "ingress": {
-                        "external": false,
+                        "external": true,
                         "targetPort": 8080,
                         "exposedPort": 8080,
                         "transport": "Tcp",
@@ -101,7 +93,7 @@
                                 },
                                 {
                                     "name": "CVAT_POSTGRES_PASSWORD",
-                                    "secretRef": "postgre-key"
+                                    "value": "h7!P$9kR@2vX*5mQ#8tZ"
                                 },
                                 {
                                     "name": "CVAT_LOG_IMPORT_ERRORS",
@@ -141,12 +133,12 @@
                                 },
                                 {
                                     "name": "ALLOWED_HOSTS",
-                                    "value": "[parameters('containerapps_cvat_server_name')]"
+                                    "value": "[concat('cvat-ui.ashygrass-f407c8e6.southeastasia.azurecontainerapps.io,', parameters('containerapps_cvat_server_name'))]"
                                 }
                             ],
                             "resources": {
-                                "cpu": 0.5,
-                                "memory": "1Gi"
+                                "cpu": 1,
+                                "memory": "2Gi"
                             },
                             "probes": []
                         }
