@@ -1,0 +1,28 @@
+http:
+  routers:
+    frontend-1:
+      rule: "Host(`cvat-traefik.southeastasia.cloudapp.azure.com`) && PathPrefix(`/`)"
+      entryPoints:
+        - websecure
+      service: frontend
+      priority: 1
+      tls:
+        certResolver: letsencrypt
+    backend:
+      rule: "Host(`cvat-traefik.southeastasia.cloudapp.azure.com`) && (PathPrefix(`/api/`) || PathPrefix(`/static/`) || PathPrefix(`/admin`) || PathPrefix(`/django-rq`))"
+      entryPoints:
+        - websecure
+      service: backend
+      priority: 2
+      tls:
+        certResolver: letsencrypt
+    
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: "http://cvat-ui.app:8000"
+    backend:
+      loadBalancer:
+        servers:
+          - url: "http://cvat-server.app:8080"

@@ -6,8 +6,8 @@
             "defaultValue": "opa",
             "type": "String"
         },
-        "managedEnvironments_cvat_app_cae_externalid": {
-            "defaultValue": "/subscriptions/bb79d671-6949-4663-854e-14424d667454/resourceGroups/cvat-prod-rg/providers/Microsoft.App/managedEnvironments/cvat-app-cae",
+        "managedEnvironments_cvat_test_env_externalid": {
+            "defaultValue": "/subscriptions/bb79d671-6949-4663-854e-14424d667454/resourceGroups/cvat-prod-rg/providers/Microsoft.App/managedEnvironments/cvat-test-env",
             "type": "String"
         }
     },
@@ -23,8 +23,8 @@
                 "type": "None"
             },
             "properties": {
-                "managedEnvironmentId": "[parameters('managedEnvironments_cvat_app_cae_externalid')]",
-                "environmentId": "[parameters('managedEnvironments_cvat_app_cae_externalid')]",
+                "managedEnvironmentId": "[parameters('managedEnvironments_cvat_test_env_externalid')]",
+                "environmentId": "[parameters('managedEnvironments_cvat_test_env_externalid')]",
                 "workloadProfileName": "Consumption",
                 "configuration": {
                     "activeRevisionsMode": "Single",
