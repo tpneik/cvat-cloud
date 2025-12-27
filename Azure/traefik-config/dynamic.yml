@@ -1,0 +1,24 @@
+http:
+  routers:
+    frontend:
+      rule: "Host(`cvat-traefik.southeastasia.cloudapp.azure.com`) && PathPrefix(`/webonly`)"
+      entryPoints:
+        - websecure
+      service: frontend-service
+      priority: 1
+      middlewares:
+        - strip-webonly
+      tls:
+        certResolver: letsencrypt
+    
+  services:
+    frontend-service:
+      loadBalancer:
+        servers:
+          - url: "http://10.28.10.5"
+
+  middlewares:
+    strip-webonly:
+      stripPrefix:
+        prefixes:
+          - "/webonly"
