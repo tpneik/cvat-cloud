@@ -1,0 +1,15 @@
+# Azure Subscription Configuration
+subscription_id = "bb79d671-6949-4663-854e-14424d667454"
+
+# Application Configuration
+application_name = "cvat"
+client_name      = "kienpt"
+location         = "East Asia"
+
+# Network Configuration
+# Leave null to use auto-generated names based on client_name and application_name
+# resource_group_name                     = null
+# virtual_network_name                    = null
+# application_subnet_name                 = null
+# database_subnet_name                    = null
+# traefik_application_gateway_subnet      = null
