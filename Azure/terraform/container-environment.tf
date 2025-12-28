@@ -9,4 +9,9 @@ resource "azurerm_container_app_environment" "app_env" {
   identity {
     type = "SystemAssigned"
   }
+
+  depends_on = [
+    azurerm_private_dns_zone_virtual_network_link.main,
+    azurerm_subnet.application_subnet
+  ]
 }
