@@ -48,14 +48,14 @@ variable "application_subnet_prefixes" {
   
 }
 
-variable "database_subnet_name" {
-    description = "The name of the database subnet."
+variable "private_endpoint_subnet" {
+    description = "The name of the private endpoint subnet."
     type        = string
     default     = null
 }
 
-variable "database_subnet_prefixes" {
-    description = "The address prefixes for the database subnet."
+variable "private_endpoint_subnet_prefixes" {
+    description = "The address prefixes for the private endpoint subnet."
     type        = list(string)
     default     = ["10.28.16.0/24"]
 }
@@ -86,6 +86,12 @@ variable "virtual_network_address_space" {
 
 variable "private_dns_zone_name" {
     description = "The name of the private DNS zone."
+    type        = string
+    default     = null
+}
+
+variable "storage_account_name" {
+    description = "The name of the storage account."
     type        = string
     default     = null
 }

@@ -16,6 +16,7 @@ resource "azurerm_subnet" "application_subnet" {
   resource_group_name  = azurerm_resource_group.main_rg.name
   virtual_network_name = azurerm_virtual_network.application_vnet.name
   address_prefixes     = var.application_subnet_prefixes
+  service_endpoints    = ["Microsoft.Storage"]
 
   delegation {
     name = "container-app-delegation"
@@ -28,25 +29,17 @@ resource "azurerm_subnet" "application_subnet" {
   }
 }
 
-resource "azurerm_subnet" "database_subnet" {
-  name                 = local.database_subnet_name
+resource "azurerm_subnet" "private_endpoint_subnet" {
+  name                 = local.private_endpoint_subnet
   resource_group_name  = azurerm_resource_group.main_rg.name
   virtual_network_name = azurerm_virtual_network.application_vnet.name
-  address_prefixes     = var.database_subnet_prefixes
-
-  delegation {
-    name = "fs"
-    service_delegation {
-      name = "Microsoft.DBforPostgreSQL/flexibleServers"
-      actions = [
-        "Microsoft.Network/virtualNetworks/subnets/join/action",
-      ]
-    }
-  }
+  address_prefixes     = var.private_endpoint_subnet_prefixes
+  private_link_service_network_policies_enabled = true
+#   service_endpoints    = ["Microsoft.Storage"]
 }
 
-resource "azurerm_subnet_network_security_group_association" "database_nsg_association" {
-  subnet_id                 = azurerm_subnet.database_subnet.id
+resource "azurerm_subnet_network_security_group_association" "private_endpoint_nsg_association" {
+  subnet_id                 = azurerm_subnet.private_endpoint_subnet.id
   network_security_group_id = azurerm_network_security_group.main_nsg.id
 }
 
