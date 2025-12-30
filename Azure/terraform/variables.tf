@@ -186,6 +186,7 @@ variable "container_apps" {
                 name         = string
                 storage_name = optional(string)
                 storage_type = optional(string)
+                mount_options = optional(string)
             })))
         })
 
