@@ -11,6 +11,7 @@ This infrastucture will be deployed in Azure, leveraging as much as possile Azur
 
 
 
+## Storage account testing
 ```bash
 echo "hehe" > data.txt
 export AZCOPY_SPA_CLIENT_SECRET='your-key'
@@ -24,3 +25,23 @@ azcopy copy vector.toml "https://mmccvatsa.file.core.windows.net/cvat-vector-com
 
 ```
 
+## PostgreSQL Testing
+
+```
+sudo apt-get update && sudo apt-get install -y postgresql-client
+
+export PGHOST=10.28.16.8
+export PGUSER=cvatAdmin
+export PGPORT=5432
+export PGDATABASE=postgres
+export PGPASSWORD='H@Sh1CoR3!'
+
+psql
+```
+
+## Backend server testing
+
+```
+
+curl cvat-server:8080
+```

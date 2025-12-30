@@ -1,4 +1,4 @@
-# Container App Environment
+## Container App Environment
 
 resource "azurerm_container_app_environment" "app_env" {
   name                              = local.container_app_environment_name
@@ -61,8 +61,15 @@ resource "azurerm_container_app" "container_app" {
     revision_mode                = each.value.revision_mode
 
     lifecycle {
-      ignore_changes = [workload_profile_name]
+      ignore_changes = [
+        workload_profile_name
+      ]
     }
+
+    depends_on = [
+      azurerm_container_app_environment_storage.vector_file_shared,
+      azurerm_container_app_environment_storage.redis_file_shared
+    ]
 
     template {
         max_replicas    = each.value.template.max_replicas
