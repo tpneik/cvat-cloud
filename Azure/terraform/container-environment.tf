@@ -1,11 +1,3 @@
-resource "azurerm_storage_account_network_rules" "sa_network_rule_to_app_subnet_and_administrator_ip" {
-  storage_account_id = azurerm_storage_account.main.id
-
-  default_action             = "Allow"
-  virtual_network_subnet_ids = [azurerm_subnet.application_subnet.id]
-  bypass                     = ["AzureServices"]
-}
-
 # Container App Environment
 
 resource "azurerm_container_app_environment" "app_env" {
@@ -20,9 +12,13 @@ resource "azurerm_container_app_environment" "app_env" {
     type = "SystemAssigned"
   }
 
+  lifecycle {
+    ignore_changes = [infrastructure_resource_group_name, workload_profile]
+  }
+
   depends_on = [
     azurerm_subnet.application_subnet,
-    azurerm_storage_account_network_rules.sa_network_rule_to_app_subnet_and_administrator_ip,
+    azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip,
     azurerm_storage_share.vector,
     azurerm_storage_share.redis
   ]
@@ -35,6 +31,10 @@ resource "azurerm_container_app_environment_storage" "vector_file_shared" {
   share_name                   = azurerm_storage_share.vector.name
   access_key                   = azurerm_storage_account.main.primary_access_key
   access_mode                  = "ReadWrite"
+
+  lifecycle {
+    ignore_changes = [container_app_environment_id]
+  }
 }
 
 resource "azurerm_container_app_environment_storage" "redis_file_shared" {
@@ -44,6 +44,10 @@ resource "azurerm_container_app_environment_storage" "redis_file_shared" {
   share_name                   = azurerm_storage_share.redis.name
   access_key                   = azurerm_storage_account.main.primary_access_key
   access_mode                  = "ReadWrite"
+
+  lifecycle {
+    ignore_changes = [container_app_environment_id]
+  }
 }
 
 ## Container Apps
@@ -55,6 +59,10 @@ resource "azurerm_container_app" "container_app" {
     name                         = each.value.name
     resource_group_name          = azurerm_resource_group.main_rg.name
     revision_mode                = each.value.revision_mode
+
+    lifecycle {
+      ignore_changes = [workload_profile_name]
+    }
 
     template {
         max_replicas    = each.value.template.max_replicas

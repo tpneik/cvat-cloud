@@ -5,14 +5,18 @@ resource "azurerm_storage_account" "main" {
   account_tier                      = "Standard"
   account_replication_type          = "LRS"
   public_network_access_enabled     = true
-
 }
 
+# Take note that azurerm_storage_account_network_rules must have only one per storage account.
+# You cannot have multiple azurerm_storage_account_network_rules for the same storage account.
 resource "azurerm_storage_account_network_rules" "sa_network_rule_to_allow_administrator_ip" {
   storage_account_id = azurerm_storage_account.main.id
-
-  default_action             = "Allow"
+  default_action             = "Deny"
   ip_rules                   = [ "14.164.2.127" ]
+  # Take note of these subnet IDs. They must have service endpoint for Microsoft.Storage enabled in order to work.
+  # If more subnets need access, add them to this list.
+  # virtual_network_subnet_ids = [azurerm_subnet.vm_test_subnet.id]
+  virtual_network_subnet_ids = [azurerm_subnet.application_subnet.id]
   bypass                     = ["AzureServices"]
 }
 
