@@ -9,6 +9,7 @@ CVAT - an interactive video and image annotation tool for computer vision. It is
 
 This infrastucture will be deployed in Azure, leveraging as much as possile Azure Service, mainly on Azure Container App. The architect will be security-enhanced time to time.
 
+![Architecture Diagram](images/component.drawio-2.png)
 
 
 ## Storage account testing
