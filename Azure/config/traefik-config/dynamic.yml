@@ -1,7 +1,7 @@
 http:
   routers:
     frontend-1:
-      rule: "Host(`cvat-traefik.southeastasia.cloudapp.azure.com`) && PathPrefix(`/`)"
+      rule: "Host(`mmc-cvat-traefik-app-gateway-vm.eastasia.cloudapp.azure.com`) && PathPrefix(`/`)"
       entryPoints:
         - websecure
       service: frontend
@@ -9,7 +9,7 @@ http:
       tls:
         certResolver: letsencrypt
     backend:
-      rule: "Host(`cvat-traefik.southeastasia.cloudapp.azure.com`) && (PathPrefix(`/api/`) || PathPrefix(`/static/`) || PathPrefix(`/admin`) || PathPrefix(`/django-rq`))"
+      rule: "Host(`mmc-cvat-traefik-app-gateway-vm.eastasia.cloudapp.azure.com`) && (PathPrefix(`/api/`) || PathPrefix(`/static/`) || PathPrefix(`/admin`) || PathPrefix(`/django-rq`))"
       entryPoints:
         - websecure
       service: backend

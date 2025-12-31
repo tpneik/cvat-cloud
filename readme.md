@@ -46,3 +46,8 @@ psql
 
 curl cvat-server:8080
 ```
+
+## Use when want to recreate specific resource 
+```
+terraform apply -replace='module.traefik_vm.azurerm_linux_virtual_machine.this[0]'
+```

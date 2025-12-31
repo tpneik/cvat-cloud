@@ -96,8 +96,8 @@ variable "storage_account_name" {
     default     = null
 }
 
-variable "traefik_application_gateway_name" {
-    description = "The name of the Traefik application gateway."
+variable "key_vault_name" {
+    description = "The name of the key vault."
     type        = string
     default     = null
 }

@@ -8,5 +8,5 @@ locals {
   container_app_environment_name          = coalesce(var.container_app_environment_name, "${var.client_name}-${var.application_name}-app-env")
   private_dns_zone_name                   = coalesce(var.private_dns_zone_name, "${var.client_name}-${var.application_name}.app")
   storage_account_name                    = coalesce(var.storage_account_name, "${var.client_name}${var.application_name}sa")
-  traefik_application_gateway_name        = coalesce(var.traefik_application_gateway_name, "${var.client_name}-${var.application_name}-traefik-app-gateway-vm")
+  key_vault_name                         = coalesce(var.key_vault_name, "${var.client_name}-${var.application_name}-kv")
 }

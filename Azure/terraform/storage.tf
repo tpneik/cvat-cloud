@@ -12,7 +12,7 @@ resource "azurerm_storage_account" "main" {
 resource "azurerm_storage_account_network_rules" "sa_network_rule_to_allow_administrator_ip" {
   storage_account_id = azurerm_storage_account.main.id
   default_action             = "Deny"
-  ip_rules                   = [ "14.164.2.127" ]
+  ip_rules                   = ["${data.http.ip.response_body}"]
   # Take note of these subnet IDs. They must have service endpoint for Microsoft.Storage enabled in order to work.
   # If more subnets need access, add them to this list.
   # virtual_network_subnet_ids = [azurerm_subnet.vm_test_subnet.id]
