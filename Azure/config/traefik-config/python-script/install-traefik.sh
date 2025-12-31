@@ -13,7 +13,7 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-URL="https://raw.githubusercontent.com/softsweb/traefik-setup/main/scripts/manager.py"
+URL="https://raw.githubusercontent.com/tpneik/cvat-cloud/refs/heads/main/Azure/config/traefik-config/python-script/manager.py"
 FILE_NAME="/tmp/traefik_manager.py"
 
 echo "🚀 Traefik Automated Setup by SoftsWeb"
