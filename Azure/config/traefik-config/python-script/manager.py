@@ -275,7 +275,7 @@ def main():
     check_docker()
     
     # Get user input
-    email = "tpneik@gmail.com
+    email = "tpneik@gmail.com"
     domain = "traefik.eastasia.cloudapp.azure.com"
     
     # Check DNS if domain provided
