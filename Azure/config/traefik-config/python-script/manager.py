@@ -229,7 +229,7 @@ def install_docker():
     os.chdir("/tmp")
     if run_command("sh get-docker.sh", shell=True):
         print_success(f"Successfully installed Docker")
-    else 
+    else:
         print_error("Not Successfully installed Docker")
 
 
@@ -279,7 +279,7 @@ def main():
     domain = "traefik.eastasia.cloudapp.azure.com"
     
     # Check DNS if domain provided
-    if test_domain:
+    if domain:
         check_dns_resolution(domain)
     
     # Setup
