@@ -28,7 +28,7 @@ azcopy copy vector.toml "https://mmccvatsa.file.core.windows.net/cvat-vector-com
 
 ## PostgreSQL Testing
 
-```
+```bash
 sudo apt-get update && sudo apt-get install -y postgresql-client
 
 export PGHOST=10.28.16.8
@@ -42,12 +42,18 @@ psql
 
 ## Backend server testing
 
-```
-
+```bash
 curl cvat-server:8080
 ```
 
 ## Use when want to recreate specific resource 
-```
+
+```hcl
 terraform apply -replace='module.traefik_vm.azurerm_linux_virtual_machine.this[0]'
+```
+
+## Check rule set of storage account
+
+```hcl
+az storage account show --name mmccvatsa --resource-group mmc-cvat-rg --query networkRuleSet
 ```

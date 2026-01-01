@@ -1,0 +1,1562 @@
+# Azure Subscription Configuration
+subscription_id = "your-subscription"
+
+# Application Configuration
+application_name = "cvat"
+client_name      = "mmc"
+location         = "East Asia"
+
+docker_hub_secret = "your-key"
+generic_password = "your-key"
+docker_hub_username = "your-username"
+
+azure_portal_object_id = "your-ms-entra-object-id"
+
+# Network Configuration
+# Leave null to use auto-generated names based on client_name and application_name
+# resource_group_name                     = null
+# virtual_network_name                    = null
+# application_subnet_name                 = null
+# database_subnet_name                    = null
+# traefik_application_gateway_subnet      = null
+
+# Container App Environment Configuration
+
+container_apps = {
+
+    cvat_clickhouse = {
+        name          = "cvat-clickhouse"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-clickhouse"
+                    image  = "docker.io/clickhouse/clickhouse-server:23.11-alpine"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    
+                    env = [
+                        {
+                            name        = "CLICKHOUSE_HOST"
+                            value       = "cvat-clickhouse"
+                        },
+                        {
+                            name        = "CLICKHOUSE_PORT"
+                            value       = "8123"
+                        },
+                        {
+                            name        = "CLICKHOUSE_DB"
+                            value       = "cvat"
+                        },
+                        {
+                            name        = "CLICKHOUSE_USER"
+                            value       = "user"
+                        },
+                        {
+                            name        = "CLICKHOUSE_PASSWORD"
+                            value       = "user"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-events-db"
+                            path = "/var/lib/clickhouse/"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-events-db"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-events-db"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        ingress = {
+            target_port         = 8123
+            transport           = "tcp"
+            
+            traffic_weight = {
+                latest_revision = true
+                percentage      = 100
+            }
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_vector = {
+        name          = "cvat-vector"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-vector"
+                    image  = "docker.io/timberio/vector:0.26.0-alpine"
+                    cpu    = "0.25"
+                    memory = "0.5Gi"
+
+                    env = [
+                        {
+                            name        = "CLICKHOUSE_HOST"
+                            value       = "cvat-clickhouse"
+                        },
+                        {
+                            name        = "CLICKHOUSE_PORT"
+                            value       = "8123"
+                        },
+                        {
+                            name        = "CLICKHOUSE_DB"
+                            value       = "cvat"
+                        },
+                        {
+                            name        = "CLICKHOUSE_USER"
+                            value       = "user"
+                        },
+                        {
+                            name        = "CLICKHOUSE_PASSWORD"
+                            value       = "user"
+                        }
+                    ]
+                    
+                    volume_mounts = [
+                        {
+                            name = "component"
+                            path = "/etc/vector"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+            
+            volume = [
+                {
+                    name            = "component"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-vector-component"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+        ingress = {
+            target_port         = 8282
+            transport           = "tcp"
+            
+            traffic_weight = {
+                latest_revision = true
+                percentage      = 100
+            }
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_redis_inmem = {
+        name          = "cvat-redis-inmem"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-redis-inmem"
+                    image  = "docker.io/redis:7.2.11-alpine"
+                    cpu    = "0.25"
+                    memory = "0.5Gi"
+                    args = [
+                        "redis-server",
+                        "--save",
+                        "60",
+                        "100",
+                        "--appendonly",
+                        "yes"
+                    ]
+                    
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+        }
+        ingress = {
+            target_port         = 6379
+            transport           = "tcp"
+            
+            traffic_weight = {
+                latest_revision = true
+                percentage      = 100
+            }
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_redis_ondisk = {
+        name          = "cvat-redis-ondisk"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-redis-ondisk"
+                    image  = "docker.io/apache/kvrocks:2.12.1"
+                    cpu    = "0.25"
+                    memory = "0.5Gi"
+                    
+                    volume_mounts = [
+                        {
+                            name = "cache-db"
+                            path = "/var/lib/kvrocks"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+            
+            volume = [
+                {
+                    name            = "cache-db"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-cache-db"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+        ingress = {
+            target_port         = 6666
+            transport           = "tcp"
+            
+            traffic_weight = {
+                latest_revision = true
+                percentage      = 100
+            }
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat-opa = {
+        name          = "opa"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "opa"
+                    image  = "docker.io/openpolicyagent/opa:0.63.0"
+                    cpu    = "0.25"
+                    memory = "0.5Gi"
+                    args = [
+                        "run",
+                        "--server",
+                        "--log-level=error",
+                        "--set=services.cvat.url=http://cvat-server:8080",
+                        "--set=bundles.cvat.service=cvat",
+                        "--set=bundles.cvat.resource=/api/auth/rules",
+                        "--set=bundles.cvat.polling.min_delay_seconds=5",
+                        "--set=bundles.cvat.polling.max_delay_seconds=15"
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+            
+        }
+        ingress = {
+            target_port         = 8181
+            transport           = "tcp"
+            
+            traffic_weight = {
+                latest_revision = true
+                percentage      = 100
+            }
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_server = {
+        name          = "cvat-server"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-server"
+                    image  = "docker.io/cvat/server:dev"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    args = [
+                        "init",
+                        "run",
+                        "server"
+                    ]
+
+                    env = [
+                        {
+                            name: "CVAT_POSTGRES_HOST",
+                            value: "10.28.16.8"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PORT",
+                            value: "5432"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_USER",
+                            value: "cvatAdmin"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_DBNAME",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_HOST",
+                            value: "cvat-redis-inmem"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PORT",
+                            value: "6379"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_HOST",
+                            value: "cvat-redis-ondisk"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_PORT",
+                            value: "6666"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PASSWORD",
+                            value: "h7!P$9kR@2vX*5mQ#8tZ"
+                        },
+                        {
+                            name: "CVAT_LOG_IMPORT_ERRORS",
+                            value: "true"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_HOST",
+                            value: "cvat-vector"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_PORT",
+                            value: "8282"
+                        },
+                        {
+                            name: "CLICKHOUSE_HOST",
+                            value: "cvat-clickhouse"
+                        },
+                        {
+                            name: "CLICKHOUSE_PORT",
+                            value: "8123"
+                        },
+                        {
+                            name: "CLICKHOUSE_DB",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CLICKHOUSE_USER",
+                            value: "user"
+                        },
+                        {
+                            name: "CLICKHOUSE_PASSWORD",
+                            value: "user"
+                        },
+                        {
+                            name: "SMOKESCREEN_OPTS",
+                            value: "$${SMOKESCREEN_OPTS:-}"
+                        },
+                        {
+                            name: "ALLOWED_HOSTS",
+                            value: "cvat-server,traefik.eastasia.cloudapp.azure.com,cvat-server.mmc-cvat.app"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-data"
+                            path = "/home/django/data"
+                        },
+                        {
+                            name = "cvat-keys"
+                            path = "/home/django/keys"
+                        },
+                        {
+                            name = "cvat-logs"
+                            path = "/home/django/logs"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-data"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-data"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-keys"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-keys"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-logs"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-logs"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        ingress = {
+            target_port         = 8080
+            transport           = "tcp"
+            external_enabled    = true
+            
+            traffic_weight = {
+                latest_revision = true
+                percentage      = 100
+            }
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_ui = {
+        name          = "cvat-ui"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-ui"
+                    image  = "docker.io/cvat/ui:dev"
+                    cpu    = "0.25"
+                    memory = "0.5Gi"
+                    
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            
+        }
+        ingress = {
+            target_port         = 8000
+            transport           = "tcp"
+            external_enabled    = true
+            
+            traffic_weight = {
+                latest_revision = true
+                percentage      = 100
+            }
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_worker_utils = {
+        name          = "cvat-worker-utils"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-worker-utils"
+                    image  = "docker.io/cvat/server:dev"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    args = [
+                        "run",
+                        "worker",
+                        "notifications",
+                        "cleaning"
+                    ]
+                    env = [
+                        {
+                            name: "CVAT_POSTGRES_HOST",
+                            value: "10.28.16.8"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PORT",
+                            value: "5432"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_USER",
+                            value: "cvatAdmin"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_DBNAME",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PASSWORD",
+                            value: "h7!P$9kR@2vX*5mQ#8tZ"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_HOST",
+                            value: "cvat-redis-inmem"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PORT",
+                            value: "6379"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_HOST",
+                            value: "cvat-redis-ondisk"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_PORT",
+                            value: "6666"
+                        },
+                        {
+                            name: "CVAT_LOG_IMPORT_ERRORS",
+                            value: "true"
+                        },
+                        {
+                            name: "CVAT_ALLOW_STATIC_CACHE",
+                            value: "$${CVAT_ALLOW_STATIC_CACHE:-no}"
+                        },
+                        
+                        {
+                            name: "DJANGO_LOG_SERVER_HOST",
+                            value: "cvat-vector"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_PORT",
+                            value: "8282"
+                        },
+                        {
+                            name: "SMOKESCREEN_OPTS",
+                            value: "$${SMOKESCREEN_OPTS:-}"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PASSWORD",
+                            value: ""
+                        },
+                        {
+                            name: "NUMPROCS",
+                            value: "1"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-data"
+                            path = "/home/django/data"
+                        },
+                        {
+                            name = "cvat-keys"
+                            path = "/home/django/keys"
+                        },
+                        {
+                            name = "cvat-logs"
+                            path = "/home/django/logs"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-data"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-data"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-keys"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-keys"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-logs"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-logs"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_worker_import = {
+        name          = "cvat-worker-import"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-worker-import"
+                    image  = "docker.io/cvat/server:dev"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    args = [
+                        "run",
+                        "worker",
+                        "import"
+                    ]
+                    env = [
+                        {
+                            name: "CVAT_POSTGRES_HOST",
+                            value: "10.28.16.8"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PORT",
+                            value: "5432"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_USER",
+                            value: "cvatAdmin"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_DBNAME",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PASSWORD",
+                            value: "h7!P$9kR@2vX*5mQ#8tZ"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_HOST",
+                            value: "cvat-redis-inmem"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PORT",
+                            value: "6379"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_HOST",
+                            value: "cvat-redis-ondisk"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_PORT",
+                            value: "6666"
+                        },
+                        {
+                            name: "CVAT_LOG_IMPORT_ERRORS",
+                            value: "true"
+                        },
+                        {
+                            name: "CVAT_ALLOW_STATIC_CACHE",
+                            value: "$${CVAT_ALLOW_STATIC_CACHE:-no}"
+                        },
+                        
+                        {
+                            name: "DJANGO_LOG_SERVER_HOST",
+                            value: "cvat-vector"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_PORT",
+                            value: "8282"
+                        },
+                        {
+                            name: "SMOKESCREEN_OPTS",
+                            value: "$${SMOKESCREEN_OPTS:-}"
+                        },
+                        {
+                            name: "NUMPROCS",
+                            value: "2"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-data"
+                            path = "/home/django/data"
+                        },
+                        {
+                            name = "cvat-keys"
+                            path = "/home/django/keys"
+                        },
+                        {
+                            name = "cvat-logs"
+                            path = "/home/django/logs"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-data"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-data"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-keys"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-keys"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-logs"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-logs"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_worker_export = {
+        name          = "cvat-worker-export"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-worker-export"
+                    image  = "docker.io/cvat/server:dev"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    args = [
+                        "run",
+                        "worker",
+                        "export"
+                    ]
+                    env = [
+                        {
+                            name: "CVAT_POSTGRES_HOST",
+                            value: "10.28.16.8"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PORT",
+                            value: "5432"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_USER",
+                            value: "cvatAdmin"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_DBNAME",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PASSWORD",
+                            value: "h7!P$9kR@2vX*5mQ#8tZ"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_HOST",
+                            value: "cvat-redis-inmem"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PORT",
+                            value: "6379"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_HOST",
+                            value: "cvat-redis-ondisk"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_PORT",
+                            value: "6666"
+                        },
+                        {
+                            name: "CVAT_LOG_IMPORT_ERRORS",
+                            value: "true"
+                        },
+                        {
+                            name: "CVAT_ALLOW_STATIC_CACHE",
+                            value: "$${CVAT_ALLOW_STATIC_CACHE:-no}"
+                        },
+                        
+                        {
+                            name: "DJANGO_LOG_SERVER_HOST",
+                            value: "cvat-vector"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_PORT",
+                            value: "8282"
+                        },
+                        {
+                            name: "SMOKESCREEN_OPTS",
+                            value: "$${SMOKESCREEN_OPTS:-}"
+                        },
+                        {
+                            name: "NUMPROCS",
+                            value: "2"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-data"
+                            path = "/home/django/data"
+                        },
+                        {
+                            name = "cvat-keys"
+                            path = "/home/django/keys"
+                        },
+                        {
+                            name = "cvat-logs"
+                            path = "/home/django/logs"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-data"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-data"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-keys"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-keys"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-logs"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-logs"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_worker_annotation = {
+        name          = "cvat-worker-annotation"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-worker-annotation"
+                    image  = "docker.io/cvat/server:dev"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    args = [
+                        "run",
+                        "worker",
+                        "annotation"
+                    ]
+                    env = [
+                        {
+                            name: "CVAT_POSTGRES_HOST",
+                            value: "10.28.16.8"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PORT",
+                            value: "5432"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_USER",
+                            value: "cvatAdmin"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_DBNAME",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PASSWORD",
+                            value: "h7!P$9kR@2vX*5mQ#8tZ"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_HOST",
+                            value: "cvat-redis-inmem"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PORT",
+                            value: "6379"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_HOST",
+                            value: "cvat-redis-ondisk"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_PORT",
+                            value: "6666"
+                        },
+                        {
+                            name: "CVAT_LOG_IMPORT_ERRORS",
+                            value: "true"
+                        },
+                        {
+                            name: "CVAT_ALLOW_STATIC_CACHE",
+                            value: "$${CVAT_ALLOW_STATIC_CACHE:-no}"
+                        },
+                        
+                        {
+                            name: "DJANGO_LOG_SERVER_HOST",
+                            value: "cvat-vector"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_PORT",
+                            value: "8282"
+                        },
+                        {
+                            name: "SMOKESCREEN_OPTS",
+                            value: "$${SMOKESCREEN_OPTS:-}"
+                        },
+                        {
+                            name: "NUMPROCS",
+                            value: "1"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-data"
+                            path = "/home/django/data"
+                        },
+                        {
+                            name = "cvat-keys"
+                            path = "/home/django/keys"
+                        },
+                        {
+                            name = "cvat-logs"
+                            path = "/home/django/logs"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-data"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-data"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-keys"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-keys"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-logs"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-logs"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_worker_webhooks = {
+        name          = "cvat-worker-webhooks"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-worker-webhooks"
+                    image  = "docker.io/cvat/server:dev"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    args = [
+                        "run",
+                        "worker",
+                        "webhooks"
+                    ]
+                    env = [
+                        {
+                            name: "CVAT_POSTGRES_HOST",
+                            value: "10.28.16.8"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PORT",
+                            value: "5432"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_USER",
+                            value: "cvatAdmin"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_DBNAME",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PASSWORD",
+                            value: "h7!P$9kR@2vX*5mQ#8tZ"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_HOST",
+                            value: "cvat-redis-inmem"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PORT",
+                            value: "6379"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_HOST",
+                            value: "cvat-redis-ondisk"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_PORT",
+                            value: "6666"
+                        },
+                        {
+                            name: "CVAT_LOG_IMPORT_ERRORS",
+                            value: "true"
+                        },
+                        {
+                            name: "CVAT_ALLOW_STATIC_CACHE",
+                            value: "$${CVAT_ALLOW_STATIC_CACHE:-no}"
+                        },
+                        
+                        {
+                            name: "DJANGO_LOG_SERVER_HOST",
+                            value: "cvat-vector"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_PORT",
+                            value: "8282"
+                        },
+                        {
+                            name: "SMOKESCREEN_OPTS",
+                            value: "$${SMOKESCREEN_OPTS:-}"
+                        },
+                        {
+                            name: "NUMPROCS",
+                            value: "1"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-data"
+                            path = "/home/django/data"
+                        },
+                        {
+                            name = "cvat-keys"
+                            path = "/home/django/keys"
+                        },
+                        {
+                            name = "cvat-logs"
+                            path = "/home/django/logs"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-data"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-data"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-keys"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-keys"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-logs"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-logs"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_worker_quality_reports = {
+        name          = "cvat-worker-quality-reports"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-worker-quality-reports"
+                    image  = "docker.io/cvat/server:dev"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    args = [
+                        "run",
+                        "worker",
+                        "quality_reports"
+                    ]
+                    env = [
+                        {
+                            name: "CVAT_POSTGRES_HOST",
+                            value: "10.28.16.8"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PORT",
+                            value: "5432"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_USER",
+                            value: "cvatAdmin"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_DBNAME",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PASSWORD",
+                            value: "h7!P$9kR@2vX*5mQ#8tZ"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_HOST",
+                            value: "cvat-redis-inmem"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PORT",
+                            value: "6379"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_HOST",
+                            value: "cvat-redis-ondisk"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_PORT",
+                            value: "6666"
+                        },
+                        {
+                            name: "CVAT_LOG_IMPORT_ERRORS",
+                            value: "true"
+                        },
+                        {
+                            name: "CVAT_ALLOW_STATIC_CACHE",
+                            value: "$${CVAT_ALLOW_STATIC_CACHE:-no}"
+                        },
+                        
+                        {
+                            name: "DJANGO_LOG_SERVER_HOST",
+                            value: "cvat-vector"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_PORT",
+                            value: "8282"
+                        },
+                        {
+                            name: "SMOKESCREEN_OPTS",
+                            value: "$${SMOKESCREEN_OPTS:-}"
+                        },
+                        {
+                            name: "NUMPROCS",
+                            value: "1"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-data"
+                            path = "/home/django/data"
+                        },
+                        {
+                            name = "cvat-keys"
+                            path = "/home/django/keys"
+                        },
+                        {
+                            name = "cvat-logs"
+                            path = "/home/django/logs"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-data"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-data"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-keys"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-keys"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-logs"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-logs"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_worker_chunks = {
+        name          = "cvat-worker-chunks"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-worker-chunks"
+                    image  = "docker.io/cvat/server:dev"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    args = [
+                        "run",
+                        "worker",
+                        "chunks"
+                    ]
+                    env = [
+                        {
+                            name: "CVAT_POSTGRES_HOST",
+                            value: "10.28.16.8"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PORT",
+                            value: "5432"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_USER",
+                            value: "cvatAdmin"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_DBNAME",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PASSWORD",
+                            value: "h7!P$9kR@2vX*5mQ#8tZ"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_HOST",
+                            value: "cvat-redis-inmem"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PORT",
+                            value: "6379"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_HOST",
+                            value: "cvat-redis-ondisk"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_PORT",
+                            value: "6666"
+                        },
+                        {
+                            name: "CVAT_LOG_IMPORT_ERRORS",
+                            value: "true"
+                        },
+                        {
+                            name: "CVAT_ALLOW_STATIC_CACHE",
+                            value: "$${CVAT_ALLOW_STATIC_CACHE:-no}"
+                        },
+                        
+                        {
+                            name: "DJANGO_LOG_SERVER_HOST",
+                            value: "cvat-vector"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_PORT",
+                            value: "8282"
+                        },
+                        {
+                            name: "SMOKESCREEN_OPTS",
+                            value: "$${SMOKESCREEN_OPTS:-}"
+                        },
+                        {
+                            name: "NUMPROCS",
+                            value: "2"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-data"
+                            path = "/home/django/data"
+                        },
+                        {
+                            name = "cvat-keys"
+                            path = "/home/django/keys"
+                        },
+                        {
+                            name = "cvat-logs"
+                            path = "/home/django/logs"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-data"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-data"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-keys"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-keys"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-logs"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-logs"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+
+    cvat_worker_consensus = {
+        name          = "cvat-worker-consensus"
+        revision_mode = "Single"
+
+        template = {
+            containers = [
+                {
+                    name   = "cvat-worker-consensus"
+                    image  = "docker.io/cvat/server:dev"
+                    cpu    = "0.5"
+                    memory = "1Gi"
+                    args = [
+                        "run",
+                        "worker",
+                        "consensus"
+                    ]
+                    env = [
+                        {
+                            name: "CVAT_POSTGRES_HOST",
+                            value: "10.28.16.8"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PORT",
+                            value: "5432"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_USER",
+                            value: "cvatAdmin"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_DBNAME",
+                            value: "cvat"
+                        },
+                        {
+                            name: "CVAT_POSTGRES_PASSWORD",
+                            value: "h7!P$9kR@2vX*5mQ#8tZ"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_HOST",
+                            value: "cvat-redis-inmem"
+                        },
+                        {
+                            name: "CVAT_REDIS_INMEM_PORT",
+                            value: "6379"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_HOST",
+                            value: "cvat-redis-ondisk"
+                        },
+                        {
+                            name: "CVAT_REDIS_ONDISK_PORT",
+                            value: "6666"
+                        },
+                        {
+                            name: "CVAT_LOG_IMPORT_ERRORS",
+                            value: "true"
+                        },
+                        {
+                            name: "CVAT_ALLOW_STATIC_CACHE",
+                            value: "$${CVAT_ALLOW_STATIC_CACHE:-no}"
+                        },
+                        
+                        {
+                            name: "DJANGO_LOG_SERVER_HOST",
+                            value: "cvat-vector"
+                        },
+                        {
+                            name: "DJANGO_LOG_SERVER_PORT",
+                            value: "8282"
+                        },
+                        {
+                            name: "SMOKESCREEN_OPTS",
+                            value: "$${SMOKESCREEN_OPTS:-}"
+                        },
+                        {
+                            name: "NUMPROCS",
+                            value: "2"
+                        }
+                    ]
+                    volume_mounts = [
+                        {
+                            name = "cvat-data"
+                            path = "/home/django/data"
+                        },
+                        {
+                            name = "cvat-keys"
+                            path = "/home/django/keys"
+                        },
+                        {
+                            name = "cvat-logs"
+                            path = "/home/django/logs"
+                        }
+                    ]
+                }
+            ]
+            
+            min_replicas = 1
+            max_replicas = 1
+
+            volume = [
+                {
+                    name            = "cvat-data"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-data"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-keys"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-keys"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                },
+                {
+                    name            = "cvat-logs"
+                    storage_type    = "AzureFile"
+                    storage_name    = "cvat-logs"
+                    mount_options   = "dir_mode=0777,file_mode=0777"
+                }
+            ]
+        }
+
+        registry = [
+            {
+                server   = "docker.io"
+                username = "tpneik"
+                password_secret_name = "docker-hub-secret"
+            }
+        ]
+    }
+}

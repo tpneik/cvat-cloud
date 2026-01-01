@@ -9,7 +9,8 @@ resource "azurerm_container_app_environment" "app_env" {
   internal_load_balancer_enabled    = true
   
   identity {
-    type = "SystemAssigned"
+    type = "SystemAssigned, UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.this.id]
   }
 
   lifecycle {
@@ -20,8 +21,12 @@ resource "azurerm_container_app_environment" "app_env" {
     azurerm_subnet.application_subnet,
     azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip,
     azurerm_storage_share.vector,
+    azurerm_postgresql_flexible_server.cvat_db,
     azurerm_storage_share.redis,
-    azurerm_postgresql_flexible_server.cvat_db
+    azurerm_storage_share.cvat_data,
+    azurerm_storage_share.cvat_keys,
+    azurerm_storage_share.cvat_logs,
+    azurerm_storage_share.cvat_events_db
   ]
 }
 
@@ -51,6 +56,57 @@ resource "azurerm_container_app_environment_storage" "redis_file_shared" {
   }
 }
 
+resource "azurerm_container_app_environment_storage" "cvat_data_file_shared" {
+  name                         = azurerm_storage_share.cvat_data.name
+  container_app_environment_id = azurerm_container_app_environment.app_env.id
+  account_name                 = azurerm_storage_account.main.name
+  share_name                   = azurerm_storage_share.cvat_data.name
+  access_key                   = azurerm_storage_account.main.primary_access_key
+  access_mode                  = "ReadWrite"
+
+  lifecycle {
+    ignore_changes = [container_app_environment_id]
+  }
+}
+resource "azurerm_container_app_environment_storage" "cvat_keys_file_shared" {
+  name                         = azurerm_storage_share.cvat_keys.name
+  container_app_environment_id = azurerm_container_app_environment.app_env.id
+  account_name                 = azurerm_storage_account.main.name
+  share_name                   = azurerm_storage_share.cvat_keys.name
+  access_key                   = azurerm_storage_account.main.primary_access_key
+  access_mode                  = "ReadWrite"
+
+  lifecycle {
+    ignore_changes = [container_app_environment_id]
+  }
+}
+
+resource "azurerm_container_app_environment_storage" "cvat_logs_file_shared" {
+  name                         = azurerm_storage_share.cvat_logs.name
+  container_app_environment_id = azurerm_container_app_environment.app_env.id
+  account_name                 = azurerm_storage_account.main.name
+  share_name                   = azurerm_storage_share.cvat_logs.name
+  access_key                   = azurerm_storage_account.main.primary_access_key
+  access_mode                  = "ReadWrite"
+
+  lifecycle {
+    ignore_changes = [container_app_environment_id]
+  }
+}
+
+resource "azurerm_container_app_environment_storage" "cvat_events_db_file_shared" {
+  name                         = azurerm_storage_share.cvat_events_db.name
+  container_app_environment_id = azurerm_container_app_environment.app_env.id
+  account_name                 = azurerm_storage_account.main.name
+  share_name                   = azurerm_storage_share.cvat_events_db.name
+  access_key                   = azurerm_storage_account.main.primary_access_key
+  access_mode                  = "ReadWrite"
+
+  lifecycle {
+    ignore_changes = [container_app_environment_id]
+  }
+}
+
 ## Container Apps
 
 resource "azurerm_container_app" "container_app" {
@@ -61,6 +117,11 @@ resource "azurerm_container_app" "container_app" {
     resource_group_name          = azurerm_resource_group.main_rg.name
     revision_mode                = each.value.revision_mode
 
+    identity {
+      type         = "UserAssigned"
+      identity_ids = [azurerm_user_assigned_identity.this.id]
+    }
+
     lifecycle {
       ignore_changes = [
         workload_profile_name
@@ -69,7 +130,9 @@ resource "azurerm_container_app" "container_app" {
 
     depends_on = [
       azurerm_container_app_environment_storage.vector_file_shared,
-      azurerm_container_app_environment_storage.redis_file_shared
+      azurerm_container_app_environment_storage.redis_file_shared,
+      azurerm_user_assigned_identity.this,
+      module.key_vault
     ]
 
     template {
@@ -216,5 +279,28 @@ resource "azurerm_container_app" "container_app" {
                 }
             }
         }
+    }
+
+    dynamic "registry" {
+      for_each = each.value.registry == null ? [] : each.value.registry
+
+      content {
+        server               = registry.value.server
+        identity             = registry.value.identity
+        password_secret_name = registry.value.password_secret_name
+        username             = registry.value.username
+      }
+    }
+
+    # Get things not from variables. Ref from Key Vault module.
+    dynamic "secret" {
+      for_each = module.key_vault.secrets
+
+      content {
+        name                = replace(secret.key, "_", "-")
+        identity            = azurerm_user_assigned_identity.this.id
+        key_vault_secret_id = secret.value.versionless_id
+        # value               = secret.value.value
+      }
     }
 }
