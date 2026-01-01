@@ -16,7 +16,7 @@ resource "azurerm_storage_account_network_rules" "sa_network_rule_to_allow_admin
   # Take note of these subnet IDs. They must have service endpoint for Microsoft.Storage enabled in order to work.
   # If more subnets need access, add them to this list.
   # virtual_network_subnet_ids = [azurerm_subnet.vm_test_subnet.id]
-  virtual_network_subnet_ids = [azurerm_subnet.application_subnet.id]
+  virtual_network_subnet_ids = [azurerm_subnet.application_subnet.id, azurerm_subnet.traefik_subnet.id]
   bypass                     = ["AzureServices"]
 }
 
