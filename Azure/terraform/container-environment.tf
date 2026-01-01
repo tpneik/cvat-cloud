@@ -20,7 +20,8 @@ resource "azurerm_container_app_environment" "app_env" {
     azurerm_subnet.application_subnet,
     azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip,
     azurerm_storage_share.vector,
-    azurerm_storage_share.redis
+    azurerm_storage_share.redis,
+    azurerm_postgresql_flexible_server.cvat_db
   ]
 }
 
