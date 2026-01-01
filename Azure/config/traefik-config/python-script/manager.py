@@ -152,11 +152,11 @@ http:
     frontend:
       loadBalancer:
         servers:
-          - url: "http://cvat-ui.app:8000"
+          - url: "http://cvat-ui.mmc-cvat.app:8000"
     backend:
       loadBalancer:
         servers:
-          - url: "http://cvat-server.app:8080"
+          - url: "http://cvat-server.mmc-cvat.app:8080"
 """
     
     with open("/etc/traefik/dynamic.yml", "w") as f:
