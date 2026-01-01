@@ -51,22 +51,6 @@ def check_docker():
     
     print_success("Docker is installed and running")
 
-def get_user_input():
-    """Get user input interactively"""
-    print_status("Traefik Setup Configuration")
-    print("==================================")
-    
-    email = input("Enter your email for Let's Encrypt (optional): ").strip()
-    test_domain = input("Enter test domain/subdomain (optional, e.g., test.yourdomain.com): ").strip()
-    
-    if test_domain:
-        confirm = input("Test page will auto-remove after 10 minutes. Continue? (y/n): ").strip().lower()
-        if confirm not in ['y', 'yes']:
-            print_status("Setup cancelled.")
-            sys.exit(0)
-    
-    return email, test_domain
-
 def check_dns_resolution(domain):
     """Check if domain resolves to this server"""
     print_status(f"Checking DNS resolution for {domain}...")
@@ -124,6 +108,9 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true
 
 certificatesResolvers:
   letsencrypt:
@@ -139,6 +126,44 @@ certificatesResolvers:
     
     print_success("Traefik configuration created")
 
+def create_dynamic_routing_config():
+    """Create Traefik configuration file"""
+    config_content = f"""# Traefik Global Configuration
+http:
+  routers:
+    frontend-1:
+      rule: "Host(`traefik.eastasia.cloudapp.azure.com`) && PathPrefix(`/`)"
+      entryPoints:
+        - websecure
+      service: frontend
+      priority: 1
+      tls:
+        certResolver: letsencrypt
+    backend:
+      rule: "Host(`traefik.eastasia.cloudapp.azure.com`) && (PathPrefix(`/api/`) || PathPrefix(`/static/`) || PathPrefix(`/admin`) || PathPrefix(`/django-rq`))"
+      entryPoints:
+        - websecure
+      service: backend
+      priority: 2
+      tls:
+        certResolver: letsencrypt
+    
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: "http://cvat-ui.app:8000"
+    backend:
+      loadBalancer:
+        servers:
+          - url: "http://cvat-server.app:8080"
+"""
+    
+    with open("/etc/traefik/dynamic.yml", "w") as f:
+        f.write(config_content)
+    
+    print_success("Traefik configuration created")
+
 def create_traefik_compose():
     """Create Docker Compose file for Traefik"""
     compose_content = """version: '3.8'
@@ -148,6 +173,9 @@ services:
     image: traefik:v3.6.5
     container_name: traefik
     restart: unless-stopped
+    command:
+      - --log.level=INFO
+      - --accesslog=true
     networks:
       - traefik
     ports:
@@ -156,6 +184,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - /etc/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
       - /etc/traefik/certs:/etc/traefik/certs
 
 networks:
@@ -166,39 +195,7 @@ networks:
     
     with open("/opt/traefik/docker-compose.yml", "w") as f:
         f.write(compose_content)
-    
     print_success("Docker Compose configuration created")
-
-def create_test_compose(test_domain):
-    """Create test page Docker Compose file"""
-    if not test_domain:
-        return
-    
-    compose_content = f"""version: '3.8'
-
-services:
-  test-page:
-    image: softsweb/traefik-test-page:latest
-    container_name: traefik-test-page
-    restart: no
-    networks:
-      - traefik
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.test-page.rule=Host(`{test_domain}`)"
-      - "traefik.http.routers.test-page.entrypoints=websecure"
-      - "traefik.http.routers.test-page.tls.certresolver=letsencrypt"
-
-networks:
-  traefik:
-    external: true
-    name: traefik
-"""
-    
-    with open("/opt/traefik/docker-compose-test.yml", "w") as f:
-        f.write(compose_content)
-    
-    print_success("Test page configuration created")
 
 def setup_docker_network():
     """Create Docker network if it doesn't exist"""
@@ -223,36 +220,18 @@ def deploy_traefik():
     if run_command("docker compose up -d", shell=True):
         print_success("Traefik deployed successfully")
 
-def deploy_test_page(test_domain):
-    """Deploy test page and schedule auto-removal"""
-    if not test_domain:
-        return
+def install_docker():
+    """Install docker on this machine"""
     
-    print_status("Deploying test page (will auto-remove in 10 minutes)...")
-    
-    os.chdir("/opt/traefik")
-    
-    if run_command("docker compose -f docker-compose-test.yml up -d", shell=True):
-        print_success(f"Test page deployed at https://{test_domain}")
-        
-        # Schedule auto-removal
-        removal_script = f"""#!/bin/bash
-sleep 600
-echo ""
-echo "⏰ Time is up! Removing test page..."
-docker compose -f /opt/traefik/docker-compose-test.yml down
-rm -f /opt/traefik/docker-compose-test.yml
-echo "✅ Test page removed successfully"
-"""
-        
-        with open("/tmp/remove_test_page.sh", "w") as f:
-            f.write(removal_script)
-        
-        run_command("chmod +x /tmp/remove_test_page.sh", shell=True)
-        run_command("nohup /tmp/remove_test_page.sh > /dev/null 2>&1 &", shell=True)
-        
-        removal_time = time.strftime("%H:%M:%S", time.localtime(time.time() + 600))
-        print_warning(f"Test page will auto-remove in 10 minutes (at {removal_time})")
+    print_status("Installing docker.............")
+    run_command("curl -fsSL https://get.docker.com -o /tmp/get-docker.sh", shell=True)
+    print_status("Download convenient script ok.")
+    os.chdir("/tmp")
+    if run_command("sh get-docker.sh", shell=True):
+        print_success(f"Successfully installed Docker")
+    else 
+        print_error("Not Successfully installed Docker")
+
 
 def display_final_info(test_domain):
     """Display final setup information"""
@@ -288,30 +267,33 @@ def display_final_info(test_domain):
 def main():
     """Main setup function"""
     print_status("Starting Traefik automated setup...")
+
+    # Install docker
+    install_docker()
     
     # Check prerequisites
     check_docker()
     
     # Get user input
-    email, test_domain = get_user_input()
+    emain = "tpneik@gmail.com
+    domain = "traefik.eastasia.cloudapp.azure.com"
     
     # Check DNS if domain provided
     if test_domain:
-        check_dns_resolution(test_domain)
+        check_dns_resolution(domain)
     
     # Setup
     create_directories()
-    create_traefik_config(email)
     create_traefik_compose()
-    create_test_compose(test_domain)
+    create_dynamic_routing_config()
+    create_traefik_config(email)
     setup_docker_network()
     
     # Deploy
     deploy_traefik()
-    deploy_test_page(test_domain)
     
     # Final info
-    display_final_info(test_domain)
+    display_final_info(domain)
     print_success("Setup complete! 🎉")
 
 if __name__ == "__main__":
