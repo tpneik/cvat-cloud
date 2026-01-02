@@ -102,6 +102,49 @@ variable "traefik_application_gateway_name" {
     default     = null
 }
 
+# variable "container_app_secrets" {
+#   description = "Secrets for the container apps."
+#   type = map(object({
+#     identity            = optional(string)
+#     key_vault_secret_id = optional(string)
+#     value               = optional(string)
+#   }))
+#   default = {}
+# }
+
+variable "keyvault_name" {
+    description = "The name of the Key Vault."
+    type        = string
+    default     = null 
+}
+
+variable "docker_hub_username" {
+    description = "Docker Hub username for pulling container images."
+    type = string
+    default = null
+}
+
+variable "docker_hub_secret" {
+    description = "Docker Hub secret for pulling container images."
+    type = string
+    sensitive   = true
+    default = null
+}
+
+variable "generic_password" {
+    description = "A generic password for various uses."
+    type = string
+    sensitive   = true
+    default = null
+}
+
+variable "azure_portal_object_id" {
+    description = "The object ID of the Azure portal administrator."
+    type        = string
+    default     = "null"
+}    
+
+
 #######
 variable "container_apps" {
     description = "Configuration for the container apps to deploy."
@@ -214,6 +257,17 @@ variable "container_apps" {
                 percentage      = number
             })
         }))
+        # identity = optional(object({
+        #     type         = string
+        #     identity_ids = optional(list(string))
+        # }))
+
+        registry = optional(list(object({
+            server               = string
+            username             = optional(string)
+            password_secret_name = optional(string)
+            identity             = optional(string)
+        })))
 
     }))
 

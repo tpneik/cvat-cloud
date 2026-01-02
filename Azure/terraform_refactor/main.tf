@@ -67,7 +67,7 @@ module "random_password" {
 #     },
 #     deployment_admin_user_kv_admin = {
 #       role_definition_id_or_name = "Key Vault Administrator"
-#       principal_id               = "1191322d-191c-4b6c-bb5f-f1c9b466f9f2"
+#       principal_id               = ""
 #     }
 #   }
 #   wait_for_rbac_before_key_operations = {

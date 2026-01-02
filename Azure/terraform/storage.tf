@@ -43,3 +43,25 @@ resource "azurerm_storage_share_file" "redis" {
   storage_share_url = azurerm_storage_share.redis.url
   source            = "../config/components/cvat-cache-db/kvrocks.conf"
 }
+
+resource "azurerm_storage_share" "cvat_data" {
+  name               = "cvat-data"
+  storage_account_id = azurerm_storage_account.main.id
+  quota              = 50
+}
+resource "azurerm_storage_share" "cvat_keys" {
+  name               = "cvat-keys"
+  storage_account_id = azurerm_storage_account.main.id
+  quota              = 50
+}
+resource "azurerm_storage_share" "cvat_logs" {
+  name               = "cvat-logs"
+  storage_account_id = azurerm_storage_account.main.id
+  quota              = 50
+}
+
+resource "azurerm_storage_share" "cvat_events_db" {
+  name               = "cvat-events-db"
+  storage_account_id = azurerm_storage_account.main.id
+  quota              = 50
+}

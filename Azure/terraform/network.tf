@@ -16,7 +16,7 @@ resource "azurerm_subnet" "application_subnet" {
   resource_group_name  = azurerm_resource_group.main_rg.name
   virtual_network_name = azurerm_virtual_network.application_vnet.name
   address_prefixes     = var.application_subnet_prefixes
-  service_endpoints    = ["Microsoft.Storage"]
+  service_endpoints    = ["Microsoft.Storage", "Microsoft.KeyVault"]
 
   delegation {
     name = "container-app-delegation"
