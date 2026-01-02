@@ -1,6 +1,12 @@
 
 data "azurerm_client_config" "current" {}
 
+resource "random_password" "django_secret_key" {
+  length           = 50
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
 module "key_vault" {
   location = azurerm_resource_group.main_rg.location
   source             = "Azure/avm-res-keyvault-vault/azurerm"
@@ -35,10 +41,14 @@ module "key_vault" {
     generic_password = {
       name = "generic-password"
     }
+    django_secret_key = {
+      name = "django-secret-key"
+    }
   }
   secrets_value = {
     docker_hub_secret = "${var.docker_hub_secret}"
     generic_password  = "${var.generic_password}"
+    django_secret_key = "${random_password.django_secret_key.result}"
   }
   wait_for_rbac_before_secret_operations = {
     create = "60s"
