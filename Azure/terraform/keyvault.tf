@@ -7,6 +7,15 @@ resource "random_password" "django_secret_key" {
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
+data "http" "ip" {
+  url = "https://api.ipify.org/"
+  retry {
+    attempts     = 5
+    max_delay_ms = 1000
+    min_delay_ms = 500
+  }
+}
+
 module "key_vault" {
   location = azurerm_resource_group.main_rg.location
   source             = "Azure/avm-res-keyvault-vault/azurerm"
@@ -51,6 +60,6 @@ module "key_vault" {
     django_secret_key = "${random_password.django_secret_key.result}"
   }
   wait_for_rbac_before_secret_operations = {
-    create = "60s"
+    create = "120s"
   }
 }

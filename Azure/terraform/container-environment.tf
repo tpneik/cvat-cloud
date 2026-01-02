@@ -20,8 +20,8 @@ resource "azurerm_container_app_environment" "app_env" {
   depends_on = [
     azurerm_subnet.application_subnet,
     azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip,
-    azurerm_storage_share.vector,
     azurerm_postgresql_flexible_server.cvat_db,
+    azurerm_storage_share.vector,
     azurerm_storage_share.redis,
     azurerm_storage_share.cvat_data,
     azurerm_storage_share.cvat_keys,
@@ -41,6 +41,11 @@ resource "azurerm_container_app_environment_storage" "vector_file_shared" {
   lifecycle {
     ignore_changes = [container_app_environment_id]
   }
+
+  depends_on = [
+    azurerm_container_app_environment.app_env,
+    azurerm_storage_share.vector
+  ]
 }
 
 resource "azurerm_container_app_environment_storage" "redis_file_shared" {
@@ -54,6 +59,11 @@ resource "azurerm_container_app_environment_storage" "redis_file_shared" {
   lifecycle {
     ignore_changes = [container_app_environment_id]
   }
+
+  depends_on = [
+    azurerm_container_app_environment.app_env,
+    azurerm_storage_share.redis
+  ]
 }
 
 resource "azurerm_container_app_environment_storage" "cvat_data_file_shared" {
@@ -67,6 +77,11 @@ resource "azurerm_container_app_environment_storage" "cvat_data_file_shared" {
   lifecycle {
     ignore_changes = [container_app_environment_id]
   }
+
+  depends_on = [
+    azurerm_container_app_environment.app_env,
+    azurerm_storage_share.cvat_data
+  ]
 }
 resource "azurerm_container_app_environment_storage" "cvat_keys_file_shared" {
   name                         = azurerm_storage_share.cvat_keys.name
@@ -79,6 +94,11 @@ resource "azurerm_container_app_environment_storage" "cvat_keys_file_shared" {
   lifecycle {
     ignore_changes = [container_app_environment_id]
   }
+
+  depends_on = [
+    azurerm_container_app_environment.app_env,
+    azurerm_storage_share.cvat_keys
+  ]
 }
 
 resource "azurerm_container_app_environment_storage" "cvat_logs_file_shared" {
@@ -92,6 +112,11 @@ resource "azurerm_container_app_environment_storage" "cvat_logs_file_shared" {
   lifecycle {
     ignore_changes = [container_app_environment_id]
   }
+
+  depends_on = [
+    azurerm_container_app_environment.app_env,
+    azurerm_storage_share.cvat_logs
+  ]
 }
 
 resource "azurerm_container_app_environment_storage" "cvat_events_db_file_shared" {
@@ -105,6 +130,11 @@ resource "azurerm_container_app_environment_storage" "cvat_events_db_file_shared
   lifecycle {
     ignore_changes = [container_app_environment_id]
   }
+
+  depends_on = [
+    azurerm_container_app_environment.app_env,
+    azurerm_storage_share.cvat_events_db
+  ]
 }
 
 ## Container Apps
@@ -126,13 +156,27 @@ resource "azurerm_container_app" "container_app" {
       ignore_changes = [
         workload_profile_name
       ]
+      # CRITICAL: Ensure container apps are destroyed before environment
+      create_before_destroy = false
     }
 
+    # CRITICAL: Ensure all dependencies including Key Vault are ready
     depends_on = [
+      azurerm_container_app_environment.app_env,
       azurerm_container_app_environment_storage.vector_file_shared,
       azurerm_container_app_environment_storage.redis_file_shared,
+      azurerm_container_app_environment_storage.cvat_data_file_shared,
+      azurerm_container_app_environment_storage.cvat_keys_file_shared,
+      azurerm_container_app_environment_storage.cvat_logs_file_shared,
+      azurerm_container_app_environment_storage.cvat_events_db_file_shared,
       azurerm_user_assigned_identity.this,
-      module.key_vault
+      module.key_vault,
+      azurerm_storage_share.vector,
+      azurerm_storage_share.redis,
+      azurerm_storage_share.cvat_data,
+      azurerm_storage_share.cvat_keys,
+      azurerm_storage_share.cvat_logs,
+      azurerm_storage_share.cvat_events_db
     ]
 
     template {
