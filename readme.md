@@ -57,3 +57,23 @@ terraform apply -replace='module.traefik_vm.azurerm_linux_virtual_machine.this[0
 ```hcl
 az storage account show --name mmccvatsa --resource-group mmc-cvat-rg --query networkRuleSet
 ```
+
+## Remove resource
+```bash
+# Delete all CVAT container apps
+az containerapp delete --name cvat-worker-quality-reports --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-worker-chunks --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-redis-inmem --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-worker-webhooks --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-worker-utils --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-redis-ondisk --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-ui --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-worker-consensus --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-vector --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-server --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-worker-import --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-clickhouse --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-worker-annotation --resource-group mmc-cvat-rg --yes
+az containerapp delete --name cvat-worker-export --resource-group mmc-cvat-rg --yes
+az containerapp delete --name opa --resource-group mmc-cvat-rg --yes
+```
