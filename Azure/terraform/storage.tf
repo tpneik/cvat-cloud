@@ -24,12 +24,22 @@ resource "azurerm_storage_share" "vector" {
   name               = "cvat-vector-component"
   storage_account_id = azurerm_storage_account.main.id
   quota              = 50
+
+  depends_on = [
+    azurerm_storage_account.main,
+    azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip
+  ]
 }
 
 resource "azurerm_storage_share" "redis" {
   name               = "cvat-cache-db"
   storage_account_id = azurerm_storage_account.main.id
   quota              = 50
+
+  depends_on = [
+    azurerm_storage_account.main,
+    azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip
+  ]
 }
 
 resource "azurerm_storage_share_file" "vector" {
@@ -48,20 +58,42 @@ resource "azurerm_storage_share" "cvat_data" {
   name               = "cvat-data"
   storage_account_id = azurerm_storage_account.main.id
   quota              = 50
+
+  depends_on = [
+    azurerm_storage_account.main,
+    azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip
+  ]
 }
+
 resource "azurerm_storage_share" "cvat_keys" {
   name               = "cvat-keys"
   storage_account_id = azurerm_storage_account.main.id
   quota              = 50
+
+  depends_on = [
+    azurerm_storage_account.main,
+    azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip
+  ]
 }
+
 resource "azurerm_storage_share" "cvat_logs" {
   name               = "cvat-logs"
   storage_account_id = azurerm_storage_account.main.id
   quota              = 50
+
+  depends_on = [
+    azurerm_storage_account.main,
+    azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip
+  ]
 }
 
 resource "azurerm_storage_share" "cvat_events_db" {
   name               = "cvat-events-db"
   storage_account_id = azurerm_storage_account.main.id
   quota              = 50
+
+  depends_on = [
+    azurerm_storage_account.main,
+    azurerm_storage_account_network_rules.sa_network_rule_to_allow_administrator_ip
+  ]
 }

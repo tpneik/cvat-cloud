@@ -12,6 +12,8 @@ resource "azurerm_private_dns_zone_virtual_network_link" "main" {
 }
 
 resource "azurerm_private_dns_a_record" "cvat-ui-app" {
+  count = var.bootstrap_mode ? 0 : 1  # Skip during bootstrap mode
+  
   name                = "cvat-ui"
   zone_name           = azurerm_private_dns_zone.main.name
   resource_group_name = azurerm_resource_group.main_rg.name
@@ -25,6 +27,8 @@ resource "azurerm_private_dns_a_record" "cvat-ui-app" {
 }
 
 resource "azurerm_private_dns_a_record" "cvat-server-app" {
+  count = var.bootstrap_mode ? 0 : 1  # Skip during bootstrap mode
+  
   name                = "cvat-server"
   zone_name           = azurerm_private_dns_zone.main.name
   resource_group_name = azurerm_resource_group.main_rg.name

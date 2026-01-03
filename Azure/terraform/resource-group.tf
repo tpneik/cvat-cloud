@@ -3,14 +3,7 @@ resource "azurerm_resource_group" "main_rg" {
   location = var.location
 }
 
-data "http" "ip" {
-  url = "https://api.ipify.org/"
-  retry {
-    attempts     = 5
-    max_delay_ms = 1000
-    min_delay_ms = 500
-  }
-}
+
 
 # module "random_password" {
 #   source = "./modules/random_password"
