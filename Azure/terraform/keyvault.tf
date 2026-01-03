@@ -23,11 +23,22 @@ module "key_vault" {
   resource_group_name = azurerm_resource_group.main_rg.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
   enable_telemetry    = true
-  network_acls = {
-    bypass   = "AzureServices"
-    ip_rules = ["${data.http.ip.response_body}/32"]
+
+  # network_acls = {
+  #   bypass                     = "AzureServices"
+  #   ip_rules                   = ["123.31.170.146/32"]
+  #   virtual_network_subnet_ids = ["${azurerm_subnet.application_subnet.id}"]
+  # }
+  # network_acls = {
+  #   bypass   = "AzureServices"
+  #   ip_rules = ["${data.http.ip.response_body}/32"]
+  # }
+  network_acls ={
+    bypass                     = "AzureServices"
+    ip_rules                   = ["${data.http.ip.response_body}/32"]
     virtual_network_subnet_ids = ["${azurerm_subnet.application_subnet.id}"]
   }
+  
   public_network_access_enabled = true
   role_assignments = {
     deployment_user_kv_admin = {

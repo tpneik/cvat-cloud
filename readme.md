@@ -1,15 +1,79 @@
 # CVAT in Cloud
 
 ## Introduction
-Hi, this is my personal project to practice deploy application to cloud environment. Also, if this project can help you at any espect, please let me know, I will be so happy of that. But now it is not done!
+This is my personal project to practice deploying applications to cloud environments. If this project helps you in any aspect, please let me know—I'd be happy to hear about it! Note: This project is currently in development.
 
-Contact me via: +84 987305013 (whatsapp) or tpneik@gmail.com
+**Contact:** +84 987305013 (WhatsApp) | tpneik@gmail.com
 
-CVAT - an interactive video and image annotation tool for computer vision. It is used by tens of thousands of users and companies around the world. Our mission is to help developers, companies, and organizations around the world to solve real problems using the Data-centric AI approach.
+### About CVAT
 
-This infrastucture will be deployed in Azure, leveraging as much as possile Azure Service, mainly on Azure Container App. The architect will be security-enhanced time to time.
+**CVAT (Computer Vision Annotation Tool)** is an open-source, interactive platform for annotating images and videos for computer vision tasks. It is widely adopted by tens of thousands of users and companies worldwide, enabling developers and organizations to build high-quality datasets for machine learning and AI projects using a Data-centric AI approach.
+
+### Infrastructure Overview
+
+This infrastructure deployment leverages Azure cloud services with a focus on:
+- **Primary Platform:** Azure Container Apps for serverless container orchestration
+- **Architecture:** Microservices-based with enhanced security practices
+- **Evolution:** Continuous security improvements and architectural enhancements
 
 ![Architecture Diagram](images/component.drawio-2.png)
+
+
+
+## Run terraform to boostrap the infrastructure
+```bash
+cd Azure/terraform
+terraform plan
+terraform apply -var="bootstrap_mode=true"
+terraform plan -var="bootstrap_mode=false"
+terraform apply -var="bootstrap_mode=false"
+```
+
+
+## Remove the whole resource
+
+```bash
+# Step 1: Destroy all Container Apps first
+terraform destroy \
+  -target='azurerm_container_app.container_app["cvat-opa"]' \
+  -target='azurerm_container_app.container_app["cvat_clickhouse"]' \
+  -target='azurerm_container_app.container_app["cvat_redis_inmem"]' \
+  -target='azurerm_container_app.container_app["cvat_redis_ondisk"]' \
+  -target='azurerm_container_app.container_app["cvat_server"]' \
+  -target='azurerm_container_app.container_app["cvat_ui"]' \
+  -target='azurerm_container_app.container_app["cvat_vector"]' \
+  -target='azurerm_container_app.container_app["cvat_worker_annotation"]' \
+  -target='azurerm_container_app.container_app["cvat_worker_chunks"]' \
+  -target='azurerm_container_app.container_app["cvat_worker_consensus"]' \
+  -target='azurerm_container_app.container_app["cvat_worker_export"]' \
+  -target='azurerm_container_app.container_app["cvat_worker_import"]' \
+  -target='azurerm_container_app.container_app["cvat_worker_quality_reports"]' \
+  -target='azurerm_container_app.container_app["cvat_worker_utils"]' \
+  -target='azurerm_container_app.container_app["cvat_worker_webhooks"]' \
+  -var="bootstrap_mode=false"
+
+# Step 2: Destroy DNS A records
+terraform destroy \
+  -target='azurerm_private_dns_a_record.cvat-ui-app[0]' \
+  -target='azurerm_private_dns_a_record.cvat-server-app[0]' \
+  -var="bootstrap_mode=false"
+
+# Step 3: Destroy Container App Environment Storage
+terraform destroy \
+  -target='azurerm_container_app_environment_storage.vector_file_shared' \
+  -target='azurerm_container_app_environment_storage.redis_file_shared' \
+  -target='azurerm_container_app_environment_storage.cvat_data_file_shared' \
+  -target='azurerm_container_app_environment_storage.cvat_keys_file_shared' \
+  -target='azurerm_container_app_environment_storage.cvat_logs_file_shared' \
+  -target='azurerm_container_app_environment_storage.cvat_events_db_file_shared' \
+  -var="bootstrap_mode=false"
+
+# Step 4: Destroy Container App Environment
+terraform destroy \
+  -target='azurerm_container_app_environment.app_env' \
+  -var="bootstrap_mode=false"
+
+```
 
 
 ## Storage account testing
@@ -77,3 +141,4 @@ az containerapp delete --name cvat-worker-annotation --resource-group mmc-cvat-r
 az containerapp delete --name cvat-worker-export --resource-group mmc-cvat-rg --yes
 az containerapp delete --name opa --resource-group mmc-cvat-rg --yes
 ```
+

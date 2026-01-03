@@ -140,7 +140,7 @@ resource "azurerm_container_app_environment_storage" "cvat_events_db_file_shared
 ## Container Apps
 
 resource "azurerm_container_app" "container_app" {
-    for_each = var.container_apps
+    for_each = var.bootstrap_mode ? {} : var.container_apps  # Skip container apps during bootstrap mode
 
     container_app_environment_id = azurerm_container_app_environment.app_env.id
     name                         = each.value.name
