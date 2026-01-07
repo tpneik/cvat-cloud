@@ -23,7 +23,7 @@ This infrastructure deployment leverages Azure cloud services with a focus on:
 ## Run terraform to boostrap the infrastructure
 ```bash
 cd Azure/terraform
-terraform plan
+terraform plan -var="bootstrap_mode=true"
 terraform apply -var="bootstrap_mode=true"
 terraform plan -var="bootstrap_mode=false"
 terraform apply -var="bootstrap_mode=false"
