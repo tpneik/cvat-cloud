@@ -7,6 +7,15 @@ resource "random_password" "django_secret_key" {
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
+data "http" "ip" {
+  url = "https://api.ipify.org/"
+  retry {
+    attempts     = 5
+    max_delay_ms = 1000
+    min_delay_ms = 500
+  }
+}
+
 module "key_vault" {
   location = azurerm_resource_group.main_rg.location
   source             = "Azure/avm-res-keyvault-vault/azurerm"
@@ -14,11 +23,22 @@ module "key_vault" {
   resource_group_name = azurerm_resource_group.main_rg.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
   enable_telemetry    = true
-  network_acls = {
-    bypass   = "AzureServices"
-    ip_rules = ["${data.http.ip.response_body}/32"]
+
+  # network_acls = {
+  #   bypass                     = "AzureServices"
+  #   ip_rules                   = ["123.31.170.146/32"]
+  #   virtual_network_subnet_ids = ["${azurerm_subnet.application_subnet.id}"]
+  # }
+  # network_acls = {
+  #   bypass   = "AzureServices"
+  #   ip_rules = ["${data.http.ip.response_body}/32"]
+  # }
+  network_acls ={
+    bypass                     = "AzureServices"
+    ip_rules                   = ["${data.http.ip.response_body}/32"]
     virtual_network_subnet_ids = ["${azurerm_subnet.application_subnet.id}"]
   }
+  
   public_network_access_enabled = true
   role_assignments = {
     deployment_user_kv_admin = {
@@ -51,6 +71,6 @@ module "key_vault" {
     django_secret_key = "${random_password.django_secret_key.result}"
   }
   wait_for_rbac_before_secret_operations = {
-    create = "60s"
+    create = "120s"
   }
 }

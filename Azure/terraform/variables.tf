@@ -1,3 +1,9 @@
+variable "bootstrap_mode" {
+    description = "Indicates whether to run in bootstrap mode."
+    type        = bool
+    default     = false
+}
+
 variable "subscription_id" {
     description = "The Azure subscription ID to deploy resources to."
     type        = string
