@@ -115,3 +115,7 @@ tmp/
 temp/
 *.tmp
 .cache/
+
+# AI generated files
+CLAUDE.md
+GEMINI.md
